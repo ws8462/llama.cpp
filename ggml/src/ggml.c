@@ -4,8 +4,8 @@
 #include "ggml-impl.h"
 #include "ggml-quants.h"
 #include "ggml.h"
-#include <sys/syscall.h>
-#include <sched.h>
+// #include <sys/syscall.h>
+// #include <sched.h>
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <malloc.h> // using malloc.h with MSC/MINGW
@@ -28,8 +28,6 @@
 #include <signal.h>
 #if defined(__ANDROID__) || defined(__gnu_linux__)
 #include <syscall.h>
-#define _GNU_SOURCE 1
-#define __USE_GNU 1
 #endif
 
 #ifdef GGML_USE_OPENMP

@@ -56,6 +56,14 @@
 #pragma warning(disable: 4996)
 #endif
 
+#if defined(__ANDROID__)
+    typedef __CPU_MASK_TYPE __cpu_mask;
+    typedef struct
+    {
+        __cpu_mask __bits[16];
+    } cpu_set_t;
+#endif
+
 #if defined(_WIN32)
 
 #define WIN32_LEAN_AND_MEAN
@@ -2829,7 +2837,7 @@ struct ggml_numa_nodes {
     uint32_t n_nodes;
     uint32_t total_cpus; // hardware threads on system
     uint32_t current_node; // node on which main process is execting
-#if defined(__gnu_linux__) || defined(__ANDROID__)
+#if defined(__gnu_linux__)
     cpu_set_t cpuset; // cpuset from numactl
 #else
     uint32_t cpuset; // no NUMA support outside of Linux at this time. Use a portable datatype

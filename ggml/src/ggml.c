@@ -29,6 +29,7 @@
 #if defined(__ANDROID__) || defined(__gnu_linux__)
 #include <syscall.h>
 #define _GNU_SOURCE 1
+#define __USE_GNU 1
 #endif
 
 #ifdef GGML_USE_OPENMP

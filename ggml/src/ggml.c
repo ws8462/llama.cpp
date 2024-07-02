@@ -26,7 +26,7 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <signal.h>
-#if defined(__gnu_linux__)
+#if defined(__ANDROID__) || defined(__gnu_linux__)
 #include <syscall.h>
 #endif
 

@@ -56,13 +56,13 @@
 #pragma warning(disable: 4996)
 #endif
 
-#if defined(__ANDROID__)
-    typedef __CPU_MASK_TYPE __cpu_mask;
-    typedef struct
-    {
-        __cpu_mask __bits[16];
-    } cpu_set_t;
-#endif
+// #if defined(__ANDROID__)
+//     typedef __CPU_MASK_TYPE __cpu_mask;
+//     typedef struct
+//     {
+//         __cpu_mask __bits[16];
+//     } cpu_set_t;
+// #endif
 
 #if defined(_WIN32)
 

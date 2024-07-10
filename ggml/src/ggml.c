@@ -318,6 +318,13 @@ typedef double ggml_float;
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #if defined(__ANDROID__)
+    #if defined(__x86_64__)
+    #define __NR_sched_setaffinity 203
+    #elif defined(__arm__)
+    #define __NR_sched_setaffinity 241
+    #else
+    #error "Unsupported architecture"
+    #endif
     #define CPU_SETSIZE 1024
     #define __NCPUBITS (8 * sizeof (unsigned long))
     typedef struct {
@@ -330,6 +337,16 @@ typedef double ggml_float;
 
     void CPU_SET(int cpu, cpu_set_t *set) {
         set->__bits[cpu / __NCPUBITS] |= (1UL << (cpu % __NCPUBITS));
+    }
+
+    // Define sched_setaffinity using syscall
+    int sched_setaffinity(pid_t pid, size_t cpusetsize, const cpu_set_t *mask) {
+        int result = syscall(__NR_sched_setaffinity, pid, cpusetsize, mask);
+        if (result != 0) {
+            errno = result;
+            return -1;
+        }
+        return 0;
     }
 #endif
 
@@ -18828,15 +18845,6 @@ static thread_ret_t ggml_graph_compute_thread(void * data) {
     return 0;
 }
 
-void set_affinity(int core_id) {
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(core_id, &cpuset);
-
-    pthread_t current_thread = pthread_self();
-    pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
-}
-
 enum ggml_status ggml_graph_compute(struct ggml_cgraph * cgraph, struct ggml_cplan * cplan) {
     GGML_ASSERT(cplan);
     GGML_ASSERT(cplan->n_threads > 0);
@@ -18860,12 +18868,7 @@ enum ggml_status ggml_graph_compute(struct ggml_cgraph * cgraph, struct ggml_cpl
     if (n_threads > 1) {
         #pragma omp parallel num_threads(n_threads)
         {
-            // cpu_set_t set;
-            // CPU_ZERO( &set );
-            // CPU_SET(omp_get_thread_num(), &set);
-            // //sched_setaffinity( 0, sizeof( cpu_set_t ), &set );
-            // pthread_getaffinity_np(omp_get_thread_num(), sizeof(cpu_set_t), &set);
-            set_affinity(omp_get_thread_num());
+            //sched_setaffinity( 0, sizeof( cpu_set_t ), &set );
             #pragma omp single
             {
                 // update the number of threads from the actual number of threads that we got from OpenMP
@@ -18877,6 +18880,10 @@ enum ggml_status ggml_graph_compute(struct ggml_cgraph * cgraph, struct ggml_cpl
                 .ith    = omp_get_thread_num(),
                 .shared = &state_shared,
             };
+            cpu_set_t set;
+            CPU_ZERO( &set );
+            CPU_SET(omp_get_thread_num(), &set);
+            sched_setaffinity( 0, sizeof( cpu_set_t ), &set );
             ggml_graph_compute_thread(&worker);
         }
     } else {

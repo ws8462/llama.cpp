@@ -12203,7 +12203,7 @@ static void ggml_compute_forward_mul_mat(
 
     const bool src1_cont = ggml_is_contiguous(src1);
 
-    printf("ne01 = %d, ne11 = %d\n", ne01, ne11);
+    //printf("ne01 = %d, ne11 = %d\n", ne01, ne11);
     if (src1_cont) {
         for (int64_t i13 = 0; i13 < ne13; i13++)
             for (int64_t i12 = 0; i12 < ne12; i12++)

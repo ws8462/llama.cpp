@@ -410,9 +410,22 @@ class tinyBLAS {
         int64_t ytiles = (m - m0) / RM;
         int64_t xtiles = (n - n0) / RN;
         int64_t tiles = xtiles * ytiles;
-        int64_t duty = (tiles + nth - 1) / nth;
+        int64_t duty = (tiles + nth - 1) / nth; //올림처리
+        int64_t half_duty = (tiles + (nth/2) - 1) / (nth/2); //올림처리
         int64_t start = duty * ith;
         int64_t end = start + duty;
+        if(ith < 4) {
+            start = half_duty * ith;
+            end = start + half_duty;
+        }
+        else if(ith < 7) {
+            start = duty * (ith-2);
+            end = start + duty;
+        }
+        else {
+            start = duty * (ith-2);
+            end = start + duty * 3;
+        }
         if (end > tiles)
             end = tiles;
         for (int64_t job = start; job < end; ++job) {

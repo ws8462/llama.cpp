@@ -18828,6 +18828,15 @@ static thread_ret_t ggml_graph_compute_thread(void * data) {
     return 0;
 }
 
+void set_affinity(int core_id) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(core_id, &cpuset);
+
+    pthread_t current_thread = pthread_self();
+    pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+}
+
 enum ggml_status ggml_graph_compute(struct ggml_cgraph * cgraph, struct ggml_cplan * cplan) {
     GGML_ASSERT(cplan);
     GGML_ASSERT(cplan->n_threads > 0);
@@ -18851,22 +18860,23 @@ enum ggml_status ggml_graph_compute(struct ggml_cgraph * cgraph, struct ggml_cpl
     if (n_threads > 1) {
         #pragma omp parallel num_threads(n_threads)
         {
+            // cpu_set_t set;
+            // CPU_ZERO( &set );
+            // CPU_SET(omp_get_thread_num(), &set);
+            // //sched_setaffinity( 0, sizeof( cpu_set_t ), &set );
+            // pthread_getaffinity_np(omp_get_thread_num(), sizeof(cpu_set_t), &set);
+            set_affinity(omp_get_thread_num());
             #pragma omp single
             {
                 // update the number of threads from the actual number of threads that we got from OpenMP
                 n_threads = omp_get_num_threads();
                 state_shared.n_threads = n_threads;
             }
-
             struct ggml_compute_state worker = {
                 .thrd   = 0,
                 .ith    = omp_get_thread_num(),
                 .shared = &state_shared,
             };
-            cpu_set_t set;
-            CPU_ZERO( &set );
-            CPU_SET(omp_get_thread_num(), &set);
-            sched_setaffinity( 0, sizeof( cpu_set_t ), &set );
             ggml_graph_compute_thread(&worker);
         }
     } else {

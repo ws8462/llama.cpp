@@ -322,8 +322,8 @@ typedef double ggml_float;
     #define __NR_sched_setaffinity 203
     #elif defined(__arm__)
     #define __NR_sched_setaffinity 241
-    #else
-    #error "Unsupported architecture"
+    #elif defined(__aarch64__)
+    #define __NR_sched_setaffinity 122
     #endif
     #define CPU_SETSIZE 1024
     #define __NCPUBITS (8 * sizeof (unsigned long))

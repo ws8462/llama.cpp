@@ -261,7 +261,7 @@ int main(int argc, char ** argv) {
     std::vector<llama_token> embd_inp;
 
     {
-        auto prompt = (params.conversation && params.enable_chat_template)
+        auto prompt = params.conversation
             ? chat_add_and_format(model, chat_msgs, "system", params.prompt) // format the system prompt in conversation mode
             : params.prompt;
         if (params.interactive_first || !params.prompt.empty() || session_tokens.empty()) {
@@ -502,6 +502,7 @@ int main(int argc, char ** argv) {
 
     std::vector<llama_token> embd;
     std::vector<llama_token> embd_guidance;
+    std::vector<llama_token> temp;
 
     // tokenized antiprompts
     std::vector<std::vector<llama_token>> antiprompt_ids;
@@ -520,10 +521,10 @@ int main(int argc, char ** argv) {
     while ((n_remain != 0 && !is_antiprompt) || params.interactive) {
         // predict
         if (!embd.empty()) {
+            printf("[[%d]]", (int)embd.size());
             // Note: (n_ctx - 4) here is to match the logic for commandline prompt handling via
             // --prompt or --file which uses the same value.
             int max_embd_size = n_ctx - 4;
-
             // Ensure the input doesn't exceed the context size by truncating embd if necessary.
             if ((int) embd.size() > max_embd_size) {
                 const int skipped_tokens = (int) embd.size() - max_embd_size;
@@ -534,7 +535,6 @@ int main(int argc, char ** argv) {
                 console::set_display(console::reset);
                 fflush(stdout);
             }
-
             if (ga_n == 1) {
                 // infinite text generation via context shifting
                 // if we run out of context:
@@ -591,7 +591,6 @@ int main(int argc, char ** argv) {
                     LOG("\nn_past_old = %d, n_past = %d, ga_i = %d\n\n", n_past + bd, n_past, ga_i);
                 }
             }
-
             // try to reuse a matching prefix from the loaded session instead of re-eval (via n_past)
             if (n_session_consumed < (int) session_tokens.size()) {
                 size_t i = 0;
@@ -613,7 +612,6 @@ int main(int argc, char ** argv) {
                     embd.erase(embd.begin(), embd.begin() + i);
                 }
             }
-
             // evaluate tokens in batches
             // embd is typically prepared beforehand to fit within a batch, but not always
             if (ctx_guidance) {
@@ -653,7 +651,6 @@ int main(int argc, char ** argv) {
                     n_past_guidance += n_eval;
                 }
             }
-
             for (int i = 0; i < (int) embd.size(); i += params.n_batch) {
                 int n_eval = (int) embd.size() - i;
                 if (n_eval > params.n_batch) {
@@ -699,9 +696,8 @@ int main(int argc, char ** argv) {
             llama_sampling_accept(ctx_sampling, ctx, id, /* apply_grammar= */ true);
 
             LOG("last: %s\n", LOG_TOKENS_TOSTR_PRETTY(ctx, ctx_sampling->prev).c_str());
-
-            embd.push_back(id);
-
+            //embd.push_back(id);
+            embd = temp;
             // echo this to console
             input_echo = true;
 
@@ -714,7 +710,6 @@ int main(int argc, char ** argv) {
             LOG("embd_inp.size(): %d, n_consumed: %d\n", (int) embd_inp.size(), n_consumed);
             while ((int) embd_inp.size() > n_consumed) {
                 embd.push_back(embd_inp[n_consumed]);
-
                 // push the prompt in the sampling context in order to apply repetition penalties later
                 // for the prompt, we don't apply grammar rules
                 llama_sampling_accept(ctx_sampling, ctx, embd_inp[n_consumed], /* apply_grammar= */ false);
@@ -724,6 +719,7 @@ int main(int argc, char ** argv) {
                     break;
                 }
             }
+            temp = embd;
         }
 
         // display text
@@ -810,9 +806,7 @@ int main(int argc, char ** argv) {
                         is_antiprompt = true;
                     }
 
-                    if (params.enable_chat_template) {
-                        chat_add_and_format(model, chat_msgs, "assistant", assistant_ss.str());
-                    }
+                    chat_add_and_format(model, chat_msgs, "assistant", assistant_ss.str());
                     is_interacting = true;
                     printf("\n");
                 }
@@ -874,13 +868,12 @@ int main(int argc, char ** argv) {
                         string_process_escapes(buffer);
                     }
 
-                    bool format_chat = params.conversation && params.enable_chat_template;
-                    std::string user_inp = format_chat
+                    std::string user_inp = params.conversation
                         ? chat_add_and_format(model, chat_msgs, "user", std::move(buffer))
                         : std::move(buffer);
                     // TODO: one inconvenient of current chat template implementation is that we can't distinguish between user input and special tokens (prefix/postfix)
                     const auto line_pfx = ::llama_tokenize(ctx, params.input_prefix, false, true);
-                    const auto line_inp = ::llama_tokenize(ctx, user_inp,            false, format_chat);
+                    const auto line_inp = ::llama_tokenize(ctx, user_inp,            false, params.conversation);
                     const auto line_sfx = ::llama_tokenize(ctx, params.input_suffix, false, true);
 
                     LOG("input tokens: %s\n", LOG_TOKENS_TOSTR_PRETTY(ctx, line_inp).c_str());

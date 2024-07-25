@@ -31,6 +31,14 @@
 #pragma warning(disable: 4244 4267) // possible loss of data
 #endif
 
+#include <sys/time.h>
+long gettime(void)
+{	
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    return tv.tv_sec*1000000+tv.tv_usec;
+}
+
 static llama_context           ** g_ctx;
 static llama_model             ** g_model;
 static gpt_params               * g_params;
@@ -128,7 +136,7 @@ static std::string chat_add_and_format(struct llama_model * model, std::vector<l
 int main(int argc, char ** argv) {
     gpt_params params;
     g_params = &params;
-
+    std::cout << gettime() << std::endl;
     if (!gpt_params_parse(argc, argv, params)) {
         gpt_params_print_usage(argc, argv, params);
         return 1;
@@ -936,6 +944,8 @@ int main(int argc, char ** argv) {
 
     llama_sampling_free(ctx_sampling);
     llama_backend_free();
+
+    std::cout << gettime() << std::endl;
 
 #ifndef LOG_DISABLE_LOGS
     LOG_TEE("Log end\n");

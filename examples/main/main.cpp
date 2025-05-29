@@ -662,10 +662,12 @@ int main(int argc, char ** argv) {
 
             for (int i = 0; i < (int) embd.size(); i += params.n_batch) {
                 int n_eval = (int) embd.size() - i;
+                //std::cout<<"origin_n_eval_size : "<<n_eval<<std::endl;
+                //std::cout<<"origin_params.n_batch_size : "<<params.n_batch<<std::endl;
                 if (n_eval > params.n_batch) {
                     n_eval = params.n_batch;
                 }
-
+                //std::cout<<"n_eval_size : "<<n_eval<<std::endl;
                 LOG_DBG("eval: %s\n", string_from(ctx, embd).c_str());
 
                 if (llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval))) {

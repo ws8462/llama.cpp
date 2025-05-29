@@ -52,7 +52,7 @@ debug
 !build-info.sh
 !build.zig
 !docs/build.md
-!/android/*.so
+!android/*.so
 /libllama.so
 /llama-*
 /vulkan-shaders-gen
